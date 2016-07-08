@@ -19,6 +19,7 @@
  * You should have received a copy of the GNU General Public License
  * along with MoeMark. If not, see <http://www.gnu.org/licenses/>.
  *
+ * Some code from https://github.com/Feder1co5oave/marktex
  */
 
 ;(function() {
@@ -35,12 +36,13 @@ var block = {
   heading: /^ *(#{1,6}) *([^\n]+?) *#* *(?:\n+|$)/,
   nptable: noop,
   lheading: /^([^\n]+)\n *(=|-){2,} *(?:\n+|$)/,
+  displaymath: /^ *\$\$([\s\S]+?)\$\$ */,
   blockquote: /^( *>[^\n]+(\n(?!def)[^\n]+)*\n*)+/,
   list: /^( *)(bull) [\s\S]+?(?:hr|def|\n{2,}(?! )(?!\1bull )\n*|\s*$)/,
   html: /^ *(?:comment *(?:\n|\s*$)|closed *(?:\n{2,}|\s*$)|closing *(?:\n{2,}|\s*$))/,
   def: /^ *\[([^\]]+)\]: *<?([^\s>]+)>?(?: +["(]([^\n]+)[")])? *(?:\n+|$)/,
   table: noop,
-  paragraph: /^((?:[^\n]+\n?(?!hr|heading|lheading|blockquote|tag|def))+)\n*/,
+  paragraph: /^((?:[^\n]+\n?(?!hr|heading|lheading|blockquote|tag|def|displaymath))+)\n*/,
   text: /^[^\n]+/
 };
 
@@ -79,6 +81,7 @@ block.paragraph = replace(block.paragraph)
   ('blockquote', block.blockquote)
   ('tag', '<' + block._tag)
   ('def', block.def)
+  ('displaymath', block.displaymath)
   ();
 
 /**
@@ -260,6 +263,16 @@ Lexer.prototype.token = function(src, top, bq) {
       this.tokens.push({
         type: 'heading',
         depth: cap[2] === '=' ? 1 : 2,
+        text: cap[1]
+      });
+      continue;
+    }
+
+    // displaymath
+    if (cap = this.rules.displaymath.exec(src)) {
+      src = src.substring(cap[0].length);
+      this.tokens.push({
+        type: 'displaymath',
         text: cap[1]
       });
       continue;
@@ -465,10 +478,11 @@ Lexer.prototype.token = function(src, top, bq) {
  */
 
 var inline = {
-  escape: /^\\([\\`*{}\[\]()#+\-.!_>])/,
+  escape: /^\\([\\`*{}\[\]()#+\$\-.!_>])/,
   autolink: /^<([^ >]+(@|:\/)[^ >]+)>/,
   url: noop,
   tag: /^<!--[\s\S]*?-->|^<\/?\w+(?:"[^"]*"|'[^']*'|[^'">])*?>/,
+  inlinemath: /^\$([\s\S]+?)\$/,
   link: /^!?\[(inside)\]\(href\)/,
   reflink: /^!?\[(inside)\]\s*\[([^\]]*)\]/,
   nolink: /^!?\[((?:\[[^\]]*\]|[^\[\]])*)\]/,
@@ -477,7 +491,7 @@ var inline = {
   code: /^(`+)\s*([\s\S]*?[^`])\s*\1(?!`)/,
   br: /^ {2,}\n(?!\s*$)/,
   del: noop,
-  text: /^[\s\S]+?(?=[\\<!\[_*`]| {2,}\n|$)/
+  text: /^[\s\S]+?(?=[\\<!\[_*`\$]| {2,}\n|$)/
 };
 
 inline._inside = /(?:\[[^\]]*\]|[^\[\]]|\](?=[^\[]*\]))*/;
@@ -661,6 +675,12 @@ InlineLexer.prototype.output = function(src) {
       continue;
     }
 
+    // inlinemath
+    if (cap = this.rules.inlinemath.exec(src)) {
+      src = src.substring(cap[0].length);
+      out += this.renderer.inlinemath(cap[1]);
+    }
+
     // strong
     if (cap = this.rules.strong.exec(src)) {
       src = src.substring(cap[0].length);
@@ -822,6 +842,26 @@ Renderer.prototype.heading = function(text, level, raw) {
     + '>\n';
 };
 
+Renderer.prototype.math = function(text, display) {
+    if (this.options.mathRenderer) {
+      return this.options.mathRenderer(text, display);
+    }
+
+    if (display) {
+      return '<div class="displaymath">'
+        + escape(text, true)
+        + '\n</div>';
+    } else {
+      return '<span class="inlinemath">'
+        + escape(text, true)
+        + '\n</span>';
+    }
+};
+
+Renderer.prototype.displaymath = function(text) {
+  return this.math(text, true);
+};
+
 Renderer.prototype.hr = function() {
   return this.options.xhtml ? '<hr/>\n' : '<hr>\n';
 };
@@ -902,6 +942,10 @@ Renderer.prototype.link = function(href, title, text) {
   }
   out += '>' + text + '</a>';
   return out;
+};
+
+Renderer.prototype.inlinemath = function(text) {
+  return this.math(text, false);
 };
 
 Renderer.prototype.image = function(href, title, text) {
@@ -1002,6 +1046,9 @@ Parser.prototype.tok = function() {
         this.inline.output(this.token.text),
         this.token.depth,
         this.token.text);
+    }
+    case 'displaymath': {
+      return this.renderer.displaymath(this.token.text);
     }
     case 'code': {
       return this.renderer.code(this.token.text,
@@ -1256,6 +1303,7 @@ MoeMark.setOptions = function(opt) {
 
 MoeMark.defaults = {
   gfm: true,
+  math: true,
   tables: true,
   breaks: false,
   pedantic: false,
@@ -1265,6 +1313,7 @@ MoeMark.defaults = {
   smartLists: false,
   silent: false,
   highlight: null,
+  mathRenderer: null,
   langPrefix: 'lang-',
   smartypants: false,
   headerPrefix: '',
