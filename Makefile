@@ -1,12 +1,7 @@
 all:
-	@cp lib/marked.js marked.js
-	@uglifyjs --comments '/\*[^\0]+?Copyright[^\0]+?\*/' -o marked.min.js lib/marked.js
+	@uglifyjs --comments '/\*[^\0]+?Copyright[^\0]+?\*/' -o moemark.min.js moemark.js
 
 clean:
-	@rm marked.js
-	@rm marked.min.js
-
-bench:
-	@node test --bench
+	@rm moemark.min.js
 
 .PHONY: clean all

@@ -2,6 +2,23 @@
  * marked - a markdown parser
  * Copyright (c) 2011-2014, Christopher Jeffrey. (MIT Licensed)
  * https://github.com/chjj/marked
+ *
+ * MoeMark - Moeditor's markdown parser, forked from marked
+ * Copyright (c) 2016 Menci <huanghaorui301@gmail.com>
+ *
+ * MoeMark is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * MoeMark is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with MoeMark. If not, see <http://www.gnu.org/licenses/>.
+ *
  */
 
 ;(function() {
@@ -102,7 +119,7 @@ block.tables = merge({}, block.gfm, {
 function Lexer(options) {
   this.tokens = [];
   this.tokens.links = {};
-  this.options = options || marked.defaults;
+  this.options = options || MoeMark.defaults;
   this.rules = block.normal;
 
   if (this.options.gfm) {
@@ -518,7 +535,7 @@ inline.breaks = merge({}, inline.gfm, {
  */
 
 function InlineLexer(links, options) {
-  this.options = options || marked.defaults;
+  this.options = options || MoeMark.defaults;
   this.links = links;
   this.rules = inline.normal;
   this.renderer = this.options.renderer || new Renderer;
@@ -907,7 +924,7 @@ Renderer.prototype.text = function(text) {
 function Parser(options) {
   this.tokens = [];
   this.token = null;
-  this.options = options || marked.defaults;
+  this.options = options || MoeMark.defaults;
   this.options.renderer = this.options.renderer || new Renderer;
   this.renderer = this.options.renderer;
   this.renderer.options = this.options;
@@ -1140,17 +1157,17 @@ function merge(obj) {
 
 
 /**
- * Marked
+ * MoeMark
  */
 
-function marked(src, opt, callback) {
+function MoeMark(src, opt, callback) {
   if (callback || typeof opt === 'function') {
     if (!callback) {
       callback = opt;
       opt = null;
     }
 
-    opt = merge({}, marked.defaults, opt || {});
+    opt = merge({}, MoeMark.defaults, opt || {});
 
     var highlight = opt.highlight
       , tokens
@@ -1214,11 +1231,11 @@ function marked(src, opt, callback) {
     return;
   }
   try {
-    if (opt) opt = merge({}, marked.defaults, opt);
+    if (opt) opt = merge({}, MoeMark.defaults, opt);
     return Parser.parse(Lexer.lex(src, opt), opt);
   } catch (e) {
-    e.message += '\nPlease report this to https://github.com/chjj/marked.';
-    if ((opt || marked.defaults).silent) {
+    e.message += '\nPlease report this to https://github.com/Moeditor/MoeMark.';
+    if ((opt || MoeMark.defaults).silent) {
       return '<p>An error occured:</p><pre>'
         + escape(e.message + '', true)
         + '</pre>';
@@ -1231,13 +1248,13 @@ function marked(src, opt, callback) {
  * Options
  */
 
-marked.options =
-marked.setOptions = function(opt) {
-  merge(marked.defaults, opt);
-  return marked;
+MoeMark.options =
+MoeMark.setOptions = function(opt) {
+  merge(MoeMark.defaults, opt);
+  return MoeMark;
 };
 
-marked.defaults = {
+MoeMark.defaults = {
   gfm: true,
   tables: true,
   breaks: false,
@@ -1259,25 +1276,25 @@ marked.defaults = {
  * Expose
  */
 
-marked.Parser = Parser;
-marked.parser = Parser.parse;
+MoeMark.Parser = Parser;
+MoeMark.parser = Parser.parse;
 
-marked.Renderer = Renderer;
+MoeMark.Renderer = Renderer;
 
-marked.Lexer = Lexer;
-marked.lexer = Lexer.lex;
+MoeMark.Lexer = Lexer;
+MoeMark.lexer = Lexer.lex;
 
-marked.InlineLexer = InlineLexer;
-marked.inlineLexer = InlineLexer.output;
+MoeMark.InlineLexer = InlineLexer;
+MoeMark.inlineLexer = InlineLexer.output;
 
-marked.parse = marked;
+MoeMark.parse = MoeMark;
 
 if (typeof module !== 'undefined' && typeof exports === 'object') {
-  module.exports = marked;
+  module.exports = MoeMark;
 } else if (typeof define === 'function' && define.amd) {
-  define(function() { return marked; });
+  define(function() { return MoeMark; });
 } else {
-  this.marked = marked;
+  this.MoeMark = MoeMark;
 }
 
 }).call(function() {
