@@ -843,19 +843,19 @@ Renderer.prototype.heading = function(text, level, raw) {
 };
 
 Renderer.prototype.math = function(text, display) {
-    if (this.options.mathRenderer) {
-      return this.options.mathRenderer(text, display);
-    }
+  if (this.options.mathRenderer) {
+    return this.options.mathRenderer(text, display);
+  }
 
-    if (display) {
-      return '<div class="displaymath">'
-        + escape(text, true)
-        + '\n</div>';
-    } else {
-      return '<span class="inlinemath">'
-        + escape(text, true)
-        + '\n</span>';
-    }
+  if (display) {
+    return '<div class="displaymath">'
+      + escape(text, true)
+      + '\n</div>';
+  } else {
+    return '<span class="inlinemath">'
+      + escape(text, true)
+      + '\n</span>';
+  }
 };
 
 Renderer.prototype.displaymath = function(text) {
