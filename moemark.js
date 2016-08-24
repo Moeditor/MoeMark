@@ -285,7 +285,7 @@ Lexer.prototype.token = function(src, top, bq) {
     }
 
     // displaymath
-    if (cap = this.rules.displaymath.exec(src)) {
+    if (this.options.math && (cap = this.rules.displaymath.exec(src))) {
       if (this.options.lineNumber) cnt = count(cap[0], '\n');
       src = src.substring(cap[0].length);
       this.tokens.push({
@@ -710,7 +710,7 @@ InlineLexer.prototype.output = function(src) {
     }
 
     // inlinemath
-    if (cap = this.rules.inlinemath.exec(src)) {
+    if (this.options.math && (cap = this.rules.inlinemath.exec(src))) {
       src = src.substring(cap[0].length);
       out += this.renderer.inlinemath(cap[1]);
     }
@@ -833,6 +833,9 @@ function Renderer(options) {
 }
 
 Renderer.prototype.code = function(code, lang, escaped) {
+  if (this.options.umlchart && typeof this.options.umlRenderer === 'function') {
+    if (lang === 'sequence' || lang === 'flow') return this.options.umlRenderer(code, lang);
+  }
   if (this.options.highlight) {
     var out = this.options.highlight(code, lang);
     if (out != null && out !== code) {
@@ -1356,7 +1359,7 @@ MoeMark.setOptions = function(opt) {
 MoeMark.defaults = {
   lineNumber: true,
   gfm: true,
-  math: true,
+  math: false,
   tables: true,
   breaks: false,
   pedantic: false,
@@ -1367,6 +1370,8 @@ MoeMark.defaults = {
   silent: false,
   highlight: null,
   mathRenderer: null,
+  umlRenderer: null,
+  umlchart: false,
   langPrefix: 'lang-',
   smartypants: false,
   headerPrefix: '',
