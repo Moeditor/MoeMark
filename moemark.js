@@ -19,7 +19,8 @@
  * You should have received a copy of the GNU General Public License
  * along with MoeMark. If not, see <http://www.gnu.org/licenses/>.
  *
- * Some code from https://github.com/Feder1co5oave/marktex
+ * Some code for math syntax from https://github.com/Feder1co5oave/marktex
+ * Some code for tasklist syntax from https://github.com/ssbc/marked
  */
 
 ;(function() {
@@ -46,6 +47,7 @@ var block = {
   text: /^[^\n]+/
 };
 
+block.checkbox = /^\[([ x])\] +/;
 block.bullet = /(?:[*+-]|\d+\.)/;
 block.item = /^( *)(bull) [^\n]*(?:\n(?!\1bull )[^\n]*)*/;
 block.item = replace(block.item, 'gm')
@@ -180,6 +182,7 @@ Lexer.prototype.token = function(src, top, bq) {
     , space
     , i
     , l
+    , checked
     , cnt;
 
   while (src) {
@@ -358,6 +361,17 @@ Lexer.prototype.token = function(src, top, bq) {
         space = item.length;
         item = item.replace(/^ *([*+-]|\d+\.) +/, '');
 
+        if (this.options.gfm) {
+          checked = block.checkbox.exec(item);
+
+          if (checked) {
+            checked = checked[1] === 'x';
+            item = item.replace(block.checkbox, '');
+          } else {
+            checked = undefined;
+          }
+        }
+
         // Outdent whatever the
         // list item contains. Hacky.
         if (~item.indexOf('\n ')) {
@@ -387,6 +401,7 @@ Lexer.prototype.token = function(src, top, bq) {
         }
 
         this.tokens.push({
+          checked: checked,
           type: loose
             ? 'loose_item_start'
             : 'list_item_start'
@@ -903,13 +918,23 @@ Renderer.prototype.hr = function() {
   return this.options.xhtml ? '<hr/>\n' : '<hr>\n';
 };
 
-Renderer.prototype.list = function(body, ordered) {
+Renderer.prototype.list = function(body, ordered, taskList) {
   var type = ordered ? 'ol' : 'ul';
-  return '<' + type + '>\n' + body + '</' + type + '>\n';
+  var classes = taskList ? ' class="task-list"' : '';
+  return '<' + type + classes + '>\n' + body + '</' + type + '>\n';
 };
 
-Renderer.prototype.listitem = function(text) {
-  return '<li>' + text + '</li>\n';
+Renderer.prototype.listitem = function(text, checked) {
+  if (checked === undefined) {
+    return '<li>' + text + '</li>\n';
+  }
+
+  return '<li class="task-list-item">'
+    + '<input type="checkbox" class="task-list-item-checkbox" disabled'
+    + (checked ? ' checked' : '')
+    + '> '
+    + text
+    + '</li>\n';
 };
 
 Renderer.prototype.paragraph = function(text) {
@@ -1143,17 +1168,24 @@ Parser.prototype.tok = function() {
     }
     case 'list_start': {
       var body = ''
+        , taskList = false
         , ordered = this.token.ordered
         , bakToken = this.token;
 
       while (this.next().type !== 'list_end') {
+        if (this.token.checked !== undefined) {
+          taskList = true;
+        }
+
         body += this.tok();
       }
 
-      return addLineNumber(this.renderer.list(body, ordered), bakToken);
+      return addLineNumber(this.renderer.list(body, ordered, taskList), bakToken);
     }
     case 'list_item_start': {
-      var body = '', bakToken = this.token;
+      var body = ''
+        , checked = this.token.checked
+        , bakToken = this.token;
 
       while (this.next().type !== 'list_item_end') {
         body += this.token.type === 'text'
@@ -1161,16 +1193,17 @@ Parser.prototype.tok = function() {
           : this.tok();
       }
 
-      return addLineNumber(this.renderer.listitem(body), bakToken);
+      return addLineNumber(this.renderer.listitem(body, checked), bakToken);
     }
     case 'loose_item_start': {
-      var body = '', bakToken = this.token;
+      var body = ''
+        , bakToken = this.token;
 
       while (this.next().type !== 'list_item_end') {
         body += this.tok();
       }
 
-      return addLineNumber(this.renderer.listitem(body), bakToken);
+      return addLineNumber(this.renderer.listitem(body, undefined), bakToken);
     }
     case 'html': {
       var html = !this.token.pre && !this.options.pedantic
