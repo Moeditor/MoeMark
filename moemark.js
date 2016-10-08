@@ -859,6 +859,10 @@ Renderer.prototype.code = function(code, lang, escaped) {
     }
   }
 
+  if (!this.options.codeTags) {
+    return escaped ? code : escape(code, true);
+  }
+
   if (!lang) {
     return '<pre><code>'
       + (escaped ? code : escape(code, true))
@@ -1402,6 +1406,7 @@ MoeMark.defaults = {
   smartLists: false,
   silent: false,
   highlight: null,
+  codeTags: true,
   mathRenderer: null,
   umlRenderer: null,
   umlchart: false,
