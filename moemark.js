@@ -849,7 +849,7 @@ function Renderer(options) {
 
 Renderer.prototype.code = function(code, lang, escaped) {
   if (this.options.umlchart && typeof this.options.umlRenderer === 'function') {
-    if (lang === 'sequence' || lang === 'flow') return this.options.umlRenderer(code, lang);
+    if (lang === 'sequence' || lang === 'flow' || lang === 'mermaid') return this.options.umlRenderer(code, lang);
   }
   if (this.options.highlight) {
     var out = this.options.highlight(code, lang);
